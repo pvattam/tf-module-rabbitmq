@@ -6,3 +6,4 @@ variable "vpc_id" {}
 variable "instance_type" {}
 variable "subnets" {}
 variable "route53_zone_id" {}
+variable "kms" {}
