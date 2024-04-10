@@ -32,7 +32,7 @@ resource "aws_security_group" "main" {
 }
 
 resource "aws_instance" "main" {
-  ami = data.aws_ami.ami.image_id
+#  ami = data.aws_ami.ami.image_id
   instance_type = var.instance_type
   vpc_security_group_ids = [aws_security_group.main.id]
   subnet_id = var.subnets[0]
