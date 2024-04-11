@@ -31,21 +31,42 @@ resource "aws_security_group" "main" {
   tags = merge(var.tags, {Name =  local.name})
 }
 
-resource "aws_instance" "main" {
-  ami = data.aws_ami.ami.image_id
-  instance_type = var.instance_type
-  vpc_security_group_ids = [aws_security_group.main.id]
-  subnet_id = var.subnets[0]
-  tags = merge(var.tags, {Name =  local.name})
+#resource "aws_instance" "main" {
+#  ami = data.aws_ami.ami.image_id
+#  instance_type = var.instance_type
+#  vpc_security_group_ids = [aws_security_group.main.id]
+#  subnet_id = var.subnets[0]
+#  tags = merge(var.tags, {Name =  local.name})
+#
+#  root_block_device  {
+#      volume_size = 10
+#      encrypted = true
+#      kms_key_id = var.kms
+#      delete_on_termination = true
+#  }
+#
+#  user_data_base64 = base64encode(templatefile("${path.module}/userdata.sh" , {
+#    env = var.env
+#  }))
+#}
 
-  root_block_device  {
-      volume_size = 10
-      encrypted = true
-      kms_key_id = var.kms
-      delete_on_termination = true
+resource "aws_instance" "main" {
+  ami                    = data.aws_ami.ami.image_id
+  instance_type          = var.instance_type
+  vpc_security_group_ids = [aws_security_group.main.id]
+  subnet_id              = var.subnets[0]
+  tags                   = merge(var.tags, { Name = local.name })
+#  iam_instance_profile   = aws_iam_instance_profile.main.name
+
+  root_block_device {
+    volume_size           = 10
+    encrypted             = true
+    kms_key_id            = var.kms
+    delete_on_termination = true
   }
 
-  user_data_base64 = base64encode(templatefile("${path.module}/userdata.sh" , {
+
+  user_data_base64 = base64encode(templatefile("${path.module}/userdata.sh", {
     env = var.env
   }))
 }
