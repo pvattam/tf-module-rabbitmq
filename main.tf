@@ -31,24 +31,6 @@ resource "aws_security_group" "main" {
   tags = merge(var.tags, {Name =  local.name})
 }
 
-#resource "aws_instance" "main" {
-#  ami = data.aws_ami.ami.image_id
-#  instance_type = var.instance_type
-#  vpc_security_group_ids = [aws_security_group.main.id]
-#  subnet_id = var.subnets[0]
-#  tags = merge(var.tags, {Name =  local.name})
-#
-#  root_block_device  {
-#      volume_size = 10
-#      encrypted = true
-#      kms_key_id = var.kms
-#      delete_on_termination = true
-#  }
-#
-#  user_data_base64 = base64encode(templatefile("${path.module}/userdata.sh" , {
-#    env = var.env
-#  }))
-#}
 
 resource "aws_instance" "main" {
   ami                    = data.aws_ami.ami.image_id
@@ -56,7 +38,7 @@ resource "aws_instance" "main" {
   vpc_security_group_ids = [aws_security_group.main.id]
   subnet_id              = var.subnets[0]
   tags                   = merge(var.tags, { Name = local.name })
-#  iam_instance_profile   = aws_iam_instance_profile.main.name
+  iam_instance_profile   = aws_iam_instance_profile.main.name
 
   root_block_device {
     volume_size           = 10
@@ -69,6 +51,75 @@ resource "aws_instance" "main" {
   user_data_base64 = base64encode(templatefile("${path.module}/userdata.sh", {
     env = var.env
   }))
+}
+
+resource "aws_iam_role" "main" {
+  name = local.name
+  tags = merge(var.tags, { Name = local.name})
+
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [
+      {
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
+        Sid       = ""
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      },
+    ]
+  })
+
+  inline_policy {
+    name = "ssm_read_access"
+
+    policy = jsonencode({
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Sid" : "GetResources",
+          "Effect" : "Allow",
+          "Action" : [
+            "ssm:GetParameterHistory",
+            "ssm:GetParametersByPath",
+            "ssm:GetParameters",
+            "ssm:GetParameter"
+          ],
+          "Resource" : [
+            "arn:aws:ssm:us-east-1:072976934238:parameter/${var.env}.${local.project_name}.rabbitmq.*",
+          ]
+        },
+        {
+          "Sid" : "ListResources",
+          "Effect" : "Allow",
+          "Action" : "ssm:DescribeParameters",
+          "Resource" : "*"
+        },
+        {
+          "Sid": "S3UploadForPrometheusAlerts",
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject",
+            "s3:ListBucket",
+            "s3:PutObject",
+            "s3:DeleteObjectVersion",
+            "s3:DeleteObject"
+          ],
+          "Resource": [
+            "arn:aws:s3:::pv24-prometheus-alert-rules/*",
+            "arn:aws:s3:::pv24-prometheus-alert-rules"
+          ]
+        }
+      ]
+
+    })
+  }
+}
+
+resource "aws_iam_instance_profile" "main" {
+  name = local.name
+  role = aws_iam_role.main.name
 }
 
 resource "aws_route53_record" "main" {
