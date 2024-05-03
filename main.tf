@@ -125,7 +125,7 @@ resource "aws_iam_instance_profile" "main" {
 resource "aws_route53_record" "main" {
   zone_id = var.route53_zone_id
   name    = "rabbitmq-${var.env}"
-  type    = "CNAME"
+  type    = "A"
   ttl     = 30
   records = [aws_instance.main.private_ip]
 }
